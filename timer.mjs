@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 
 const origin = 'https://coredrive.co.uk';
 const fields = ['version', 'operation', 'run', 'attempt', 'issuedAt', 'nonce',
-  'completed', 'startedAt', 'finishedAt', 'entrySHA256', 'runnerSHA256'];
+  'completed', 'startedAt', 'finishedAt', 'releaseSHA256', 'runnerSHA256'];
 const digest = (value) => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 
 /** Validate complete, fresh, request-bound and source-bound success; never print raw replies. */
@@ -16,8 +16,8 @@ export function validate(value, operation, request, expected, now = Math.floor(D
       || value.startedAt < request.issuedAt - 120 || value.startedAt > request.issuedAt + 90
       || value.finishedAt < value.startedAt || value.finishedAt - value.startedAt > 60
       || value.finishedAt > now + 5 || now - value.finishedAt > 120
-      || !digest(value.entrySHA256) || !digest(value.runnerSHA256)
-      || value.entrySHA256 !== expected.entrySHA256 || value.runnerSHA256 !== expected.runnerSHA256)
+      || !digest(value.releaseSHA256) || !digest(value.runnerSHA256)
+      || value.releaseSHA256 !== expected.releaseSHA256 || value.runnerSHA256 !== expected.runnerSHA256)
     throw new Error('invalid-completion');
   return true;
 }
@@ -43,7 +43,7 @@ async function json(response) {
 export async function call(operation, context, io = {}) {
   if (!['purge', 'watchdog'].includes(operation) || !digest(context.key)
       || !/^[1-9][0-9]{0,19}$/.test(context.run) || !Number.isInteger(context.attempt)
-      || context.attempt < 1 || context.attempt > 20 || !digest(context.expected?.entrySHA256)
+      || context.attempt < 1 || context.attempt > 20 || !digest(context.expected?.releaseSHA256)
       || !digest(context.expected?.runnerSHA256)) throw new Error('invalid-configuration');
   const request = { run: context.run, attempt: context.attempt,
     issuedAt: Math.floor(Date.now() / 1000), nonce: randomBytes(32).toString('hex') };
@@ -80,7 +80,7 @@ export async function maintain(environment = process.env, io = {}) {
     try {
       await call(operation, { key: environment.COREDRIVE_MAINTENANCE_KEY,
         run: environment.GITHUB_RUN_ID, attempt: Number(environment.GITHUB_RUN_ATTEMPT),
-        expected: { entrySHA256: environment[operation === 'purge' ? 'PURGE_SOURCE_SHA256' : 'WATCHDOG_SOURCE_SHA256'],
+        expected: { releaseSHA256: environment.RELEASE_INVENTORY_SHA256,
           runnerSHA256: environment.RUNNER_SOURCE_SHA256 } }, io);
       (io.log || console.log)(operation + ': passed');
     } catch {

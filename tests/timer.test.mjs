@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { call, maintain, validate } from '../timer.mjs';
 
 const key = 'a'.repeat(64);
-const expected = { entrySHA256: 'b'.repeat(64), runnerSHA256: 'c'.repeat(64) };
+const expected = { releaseSHA256: 'b'.repeat(64), runnerSHA256: 'c'.repeat(64) };
 const request = { run: '123456', attempt: 1, issuedAt: Math.floor(Date.now() / 1000), nonce: 'd'.repeat(64) };
 const receipt = { version: 1, operation: 'purge', ...request, completed: true,
   startedAt: request.issuedAt, finishedAt: request.issuedAt, ...expected };
@@ -11,7 +11,7 @@ const receipt = { version: 1, operation: 'purge', ...request, completed: true,
 test('only exact source, nonce, run and fresh completion counts as successful maintenance', () => {
   assert.equal(validate(receipt, 'purge', request, expected), true);
   for (const delta of [{ completed: false }, { operation: 'watchdog' }, { nonce: 'e'.repeat(64) },
-    { run: '999' }, { entrySHA256: 'f'.repeat(64) }, { runnerSHA256: 'f'.repeat(64) },
+    { run: '999' }, { releaseSHA256: 'f'.repeat(64) }, { runnerSHA256: 'f'.repeat(64) },
     { finishedAt: request.issuedAt + 90 }, { startedAt: request.issuedAt - 121 }, { extra: 'secret' }])
     assert.throws(() => validate({ ...receipt, ...delta }, 'purge', request, expected));
   assert.throws(() => validate(receipt, 'purge', request, expected, request.issuedAt + 121));
@@ -38,8 +38,7 @@ test('network retries reuse a nonce and cannot redirect or select another host/o
 test('watchdog is attempted after cleanup failure; logs exclude secrets and raw replies', async () => {
   const logs = []; const modes = [];
   const passed = await maintain({ COREDRIVE_MAINTENANCE_KEY: key, GITHUB_RUN_ID: '123456',
-    GITHUB_RUN_ATTEMPT: '1', PURGE_SOURCE_SHA256: expected.entrySHA256,
-    WATCHDOG_SOURCE_SHA256: expected.entrySHA256, RUNNER_SOURCE_SHA256: expected.runnerSHA256 }, {
+    GITHUB_RUN_ATTEMPT: '1', RELEASE_INVENTORY_SHA256: expected.releaseSHA256, RUNNER_SOURCE_SHA256: expected.runnerSHA256 }, {
     log: (line) => logs.push(line), sleep: async () => {},
     fetch: async (url, options) => {
       const operation = url.endsWith('watchdog') ? 'watchdog' : 'purge'; modes.push(operation);

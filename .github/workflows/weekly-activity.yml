@@ -6,7 +6,7 @@ on:
 permissions: {}
 jobs:
   record:
-    if: github.repository == 'Hussanlal/coredrive-maintenance-timer' && github.ref == 'refs/heads/main'
+    if: vars.TIMER_ENABLED == 'true' && github.repository == 'Hussanlal/coredrive-maintenance-timer' && github.ref == 'refs/heads/main'
     permissions:
       contents: write
     runs-on: ubuntu-24.04

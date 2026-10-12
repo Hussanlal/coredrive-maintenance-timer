@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   maintain:
-    if: github.repository == 'Hussanlal/coredrive-maintenance-timer' && github.ref == 'refs/heads/main'
+    if: vars.TIMER_ENABLED == 'true' && github.repository == 'Hussanlal/coredrive-maintenance-timer' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 4
     steps:
@@ -23,12 +23,11 @@ jobs:
       - run: node timer.mjs
         env:
           COREDRIVE_MAINTENANCE_KEY: ${{ secrets.COREDRIVE_MAINTENANCE_KEY }}
-          PURGE_SOURCE_SHA256: ${{ vars.PURGE_SOURCE_SHA256 }}
-          WATCHDOG_SOURCE_SHA256: ${{ vars.WATCHDOG_SOURCE_SHA256 }}
+          RELEASE_INVENTORY_SHA256: ${{ vars.RELEASE_INVENTORY_SHA256 }}
           RUNNER_SOURCE_SHA256: ${{ vars.RUNNER_SOURCE_SHA256 }}
   readiness:
     needs: maintain
-    if: always() && github.repository == 'Hussanlal/coredrive-maintenance-timer' && github.ref == 'refs/heads/main'
+    if: always() && vars.TIMER_ENABLED == 'true' && github.repository == 'Hussanlal/coredrive-maintenance-timer' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
     runs-on: ubuntu-24.04

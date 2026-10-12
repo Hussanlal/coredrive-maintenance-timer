@@ -9,8 +9,10 @@ separate 256-bit bearer is held only in an Actions secret; the host stores only
 its SHA256 verifier. It grants no enquiry read/export, arbitrary command, SQL,
 file path, recipient, setting, pause/resume or deployment access.
 
-Runs validate exact request-bound, source-bound completion receipts. Network
-retries retain the same nonce. The server serialises callers and charges its own
+Runs validate exact request-bound, source-bound completion receipts. The source
+identity is the entire verified signed release-inventory digest, including
+dependencies and runtime, plus the fixed supervisor hash. Network retries retain
+the same nonce. The server serialises callers and charges its own
 clock before spawning. The watchdog is attempted even when cleanup fails.
 No secret or raw HTTP/helper response is printed or uploaded as an artifact.
 
