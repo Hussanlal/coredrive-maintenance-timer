@@ -1,0 +1,35 @@
+name: Weekly timer activity
+on:
+  schedule:
+    - cron: '13 7 * * 1'
+  workflow_dispatch:
+permissions: {}
+jobs:
+  record:
+    if: github.repository == 'Hussanlal/coredrive-maintenance-timer' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      # No checkout, deployment secret, PAT or application file is used by this job.
+      - name: Record only this repository's activity timestamp
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'NODE'
+          const url = 'https://api.github.com/repos/Hussanlal/coredrive-maintenance-timer/contents/activity.json';
+          const headers = {Authorization: 'Bearer ' + process.env.GH_TOKEN,
+            Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'};
+          const get = await fetch(url + '?ref=main', {headers, redirect: 'error', signal: AbortSignal.timeout(15000)});
+          if (get.status !== 200 && get.status !== 404) throw new Error('Activity lookup failed');
+          const previous = get.status === 200 ? await get.json() : null;
+          if (previous && !/^[a-f0-9]{40}$/.test(previous.sha)) throw new Error('Invalid activity version');
+          const body = {message: 'Record weekly timer activity', branch: 'main',
+            content: Buffer.from(JSON.stringify({version:1,timeUTC:new Date().toISOString()}) + '\n').toString('base64')};
+          if (previous) body.sha = previous.sha;
+          const put = await fetch(url, {method: 'PUT', headers, body: JSON.stringify(body),
+            redirect: 'error', signal: AbortSignal.timeout(15000)});
+          if (put.status !== 200 && put.status !== 201) throw new Error('Activity write failed');
+          console.log('Weekly repository activity recorded');
+          NODE
