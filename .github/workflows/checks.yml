@@ -1,11 +1,12 @@
 name: Timer client checks
 on:
-  push:
   pull_request:
+    types: [ready_for_review]
 permissions:
   contents: read
 jobs:
   test:
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
