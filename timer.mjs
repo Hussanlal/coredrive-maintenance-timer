@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
+import { timerFetch } from './transport.mjs';
 
 const origin = 'https://coredrive.co.uk';
 const fields = ['version', 'operation', 'run', 'attempt', 'issuedAt', 'nonce',
@@ -47,7 +48,7 @@ export async function call(operation, context, io = {}) {
       || !digest(context.expected?.runnerSHA256)) throw new Error('invalid-configuration');
   const request = { run: context.run, attempt: context.attempt,
     issuedAt: Math.floor(Date.now() / 1000), nonce: randomBytes(32).toString('hex') };
-  const fetcher = io.fetch || globalThis.fetch;
+  const fetcher = io.fetch || timerFetch;
   const sleep = io.sleep || ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
   for (let index = 0; index < 3; index++) {
     const controller = new AbortController();
@@ -93,7 +94,7 @@ export async function maintain(environment = process.env, io = {}) {
 
 /** A separate no-secret consumer detects stale or failed readiness when it runs. */
 export async function health() {
-  const response = await fetch(origin + '/api/contact/status', {
+  const response = await timerFetch(origin + '/api/contact/status', {
     redirect: 'error', signal: AbortSignal.timeout(15000),
   });
   const value = await json(response);

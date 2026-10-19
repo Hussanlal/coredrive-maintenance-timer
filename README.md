@@ -16,6 +16,16 @@ the same nonce. The server serialises callers and charges its own
 clock before spawning. The watchdog is attempted even when cleanup fails.
 No secret or raw HTTP/helper response is printed or uploaded as an artifact.
 
+The server-only HTTPS client uses Node's verified TLS transport, sending explicit
+application headers without Fetch's automatic `Sec-Fetch-Mode` header. The private
+maintenance endpoint intentionally rejects browser metadata. Responses and aborts
+are bounded through the complete body; redirects and application failures are
+never retried. Network retries keep the same request frame and nonce.
+
+Run `node --test tests/*.test.mjs` locally before leaving a bundled PR's draft.
+The checks workflow runs once on ready-for-review only; pushes, drafts, merges and
+manual dispatch do not start CI. Scheduled operational maintenance stays separate.
+
 The website checks successful cleanup AND watchdog receipts before accepting an
 enquiry. Missing, failed, revoked, different-source or older-than-45-minute
 receipts make the form unavailable; the static page and email alternative remain.
